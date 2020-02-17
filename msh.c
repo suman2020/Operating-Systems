@@ -36,13 +36,14 @@ int main()
     while(1)
 
     {
+  
 
       if(rotate=1)
       {
         printf("msh>" );
 
         while(!fgets(cmd_str,MAX_COMMAND_SIZE,stdin));
-     }
+      }
      rotate= 1;
       char *token[MAX_NUM_ARGUMENTS];
 
@@ -114,21 +115,24 @@ int main()
                   {
 
                     int number = atoi(&cmd_str[1]);
-
-                    printf("%d", number);
 // atoi[&cmd_str[1]
                     if(number> i|| number >15 || number ==0)
                     {
-                      printf("\n%dth Command not in history\n", number);
+                      printf("\n%dth Command not found in history\n", number);
 
                     }
-                    else
-                    {
+
                     strcpy(cmd_str, hist[number-1]);
 
                     rotate = 0;
-                      continue;
-                    }
+                    continue;
+
+
+                  }
+
+                  else if (strcmp(token[0], "showpids")==0)
+                  {
+
                   }
 
 
