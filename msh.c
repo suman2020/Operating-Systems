@@ -1,5 +1,5 @@
             /*
-               Name:Suman thapa magar
+               Name:Suman Thapa Magar
                ID:100143016
             */
 
@@ -14,171 +14,236 @@
 #include <string.h>
 #include <signal.h>
 
-#define WHITESPACE " \t\n"
+#define WHITESPACE " \t\n"  //split command lines into tokens,here white space acts as a delimiter
 
-#define MAX_COMMAND_SIZE 255
+#define MAX_COMMAND_SIZE 255  // the maximum command lin size
 
-#define MAX_NUM_ARGUMENTS 10
+#define MAX_NUM_ARGUMENTS 10   // msh cell only supports 10 arguments
 
 
 int main()
 {
+  //dynamically allocating memory with the use of malloc()
   char *cmd_str = (char *)malloc(MAX_COMMAND_SIZE);
 
-  int i=0;
-   int rotate= 1;
+  int i=0;  // keep track of the number of command lines enter
 
-  int status;
-    char *hist[255];
-    char *history[255];
-     int counter =0;
+  int rotate= 1;
 
-    while(1)
+  char *hist[255]; // stores the command entered by the user
 
-    {
-  
+  int SHpid[15]={0}; // array of integers to store PIDs of child process
 
-      if(rotate=1)
-      {
-        printf("msh>" );
+  int counter =0;  // keeps track of the command lines entered
 
-        while(!fgets(cmd_str,MAX_COMMAND_SIZE,stdin));
-      }
+  int Pidnum=0;    // keep track of the number of child process executed
+
+
+  while(1)
+  {
+    //this conditional statement comes to operation
+    //if the user wants to run a particular command from the history
+     if(rotate==1)
+     {
+       //prints out the msh prompt
+     	printf("msh>" );
+
+      /* read commands from the command lines
+         maximum number of commands that it can read is ten
+         this while command waits until the user inputs something
+         or else it returns NULL if there is no input
+      */
+      while(!fgets(cmd_str,MAX_COMMAND_SIZE,stdin));
+     }
+
+     //setting the rotate to its initial condition 1 so that
+     //the msh prompt is printed each time there is new user input
      rotate= 1;
-      char *token[MAX_NUM_ARGUMENTS];
+     //parse input
+     char *token[MAX_NUM_ARGUMENTS];
 
-      int token_count=0;
+     int token_count=0;
+     //pointer that points the token
+     //parsed by strsep
+     char *arg_ptr;
 
-        char *arg_ptr;
+     char *working_str=strdup(cmd_str);
+     /*
+      moving the working_str pointer
+      so as to keep track of its originl value
+      so that the actual data could be deallocated at the end
+     */
+     char *working_root = working_str;
 
-        char *working_str=strdup(cmd_str);
+     int j;
+     //tokenize the input string with whitespace used as a delimiter
+     while(((arg_ptr = strsep(&working_str,WHITESPACE))!=NULL) && (token_count<MAX_NUM_ARGUMENTS))
+     {
+       token[token_count] = strndup(arg_ptr, MAX_COMMAND_SIZE);
 
-        char *working_root = working_str;
+       if( strlen( token[token_count] ) == 0 )
+       {
+         token[token_count] = NULL;
+       }
 
-        char *separate;
+       token_count++;
 
-        int j;
-        while(((arg_ptr = strsep(&working_str,WHITESPACE))!=NULL) && (token_count<MAX_NUM_ARGUMENTS))
+     }
+
+     //gives a new promt for user input if the user doesnot enter anything
+     if(token[0]==NULL)
+     {
+     	continue;
+     }
+     //copyiny over the value in cmd_str for future command lines reference
+     hist[i]=strdup(cmd_str);
+
+     // terminates the msh cell if the user inputs exit or quit
+     if(strcmp(token[0],"exit")==0 || strcmp(token[0],"quit")==0 )
+     {
+
+       return 0;
+     }
+
+     /*
+      list the last 15 commands entered by the user with the history prompt
+     */
+     else if(strcmp(token[0],"history")==0)
+     {
+       if(counter>14)
+       {
+         for(j=0; j<15; j++)
+         {
+           hist[j]=hist[counter-14];
+           printf("%d. %s",j, hist[j]);
+           counter++;
+         }
+
+       }
+       else
+       {
+         for(j = 0; j <=counter && j<15 ;j++)
+         {
+           printf("%d. %s", j,hist[j] );
+         }
+       }
+
+      }
+
+      // changes and handles directories cd:
+      else if(strcmp(token[0], "cd")==0)
+      {
+        int value= chdir(token[1]);
+        //if the user inputted directory is not present
+        if(value==-1)
         {
-            token[token_count] = strndup(arg_ptr, MAX_COMMAND_SIZE);
+          printf("-msh:cd: %s: No such file or directory \n", token[1]);
+        }
+      }
 
-            if( strlen( token[token_count] ) == 0 )
-            {
-              token[token_count] = NULL;
-            }
+      // in case of !n : the nth command present is executed
+      // runs the nth command entered by the user where n is from 1 to 15
+      else if(token[0][0]=='!')
+      {
+        //string is converted to integer with the use of atoi()function
+        int number = atoi(&cmd_str[1]);
+        //if the nth command doesnot exist
+        if(number> i|| number >15 || number ==0)
+        {
+          printf("\n%dth Command not found in history\n", number);
 
-            token_count++;
+        }
+        //if the nth command exist
+        else
+        {
+
+          strcpy(cmd_str, hist[number-1]);
+
+          rotate = 0;
+          //skips this loop and execute from the top of the loop
+          continue;
         }
 
-              if(token[0]==NULL)
-              {
-                continue;
-              }
-              hist[i]=strdup(cmd_str);
+      }
+      //displays the process id of the child processes with the input of showpids command
 
-                  if(strcmp(token[0],"exit")==0 || strcmp(token[0],"quit")==0 )
-                  {
+      else if (strcmp(token[0], "showpids")==0)
+      {
+        int z;
+        for(z = 0; z < Pidnum; z++ )
+        {
+          printf("%d:\t%d\n",z,SHpid[z]);
+        }
+      }
 
-                    return 0;
-                  }
+      // if the user enters invalid command line arguments
+      else
+      {
+        //fork() used to create a child process
+        pid_t pid = fork();
 
-                  else if(strcmp(token[0],"history")==0)
-                  {
-                    if(counter>14)
-                    {
-                      for(j=0; j<15; j++)
-                      {
-                      history[j]=hist[counter-14];
-                      printf("%d. %s",j, history[j]);
-                      counter++;
-                      }
+      //when fork() returns 0 we are in the child process
+        if (pid==0)
+        {
+          fflush(NULL);
+          //execvp() function replaces the currently running child process
+          int ret= execvp(token[0], token);
+          //user inputted invalid arguments
+          if(ret==-1)
+          {
 
-                    }
-                    else
-                    {
-                      for(j = 0; j <=counter && j<15 ;j++)
-                      {
-                        printf("%d. %s", j,hist[j] );
-                      }
-                    }
+            printf("%s: Command not found\n", *token);
+          }
 
-                  }
-                  else if(strcmp(token[0], "cd")==0)
-                  {
-                    int value= chdir(token[1]);
-                    if(value==-1)
-                    {
-                      printf("-msh:cd: %s: No such file or directory ", token[1]);
-                    }
-                  }
-                  else if(token[0][0]=='!')
-                  {
+          exit(1);
 
-                    int number = atoi(&cmd_str[1]);
-// atoi[&cmd_str[1]
-                    if(number> i|| number >15 || number ==0)
-                    {
-                      printf("\n%dth Command not found in history\n", number);
+        }
+        //when fork() returns -1, it indicates that an error occured
+        else if (pid == -1)
+        {
+          perror("fork failed \n");
 
-                    }
+          exit(0);
+        }
+        /* when fork() returns a postive number, it indicates that we are
+          in the parent process  and the return value is the pid of the newly
+          created child process
+        */
+        else
+        {
+          int status;
+          fflush(NULL);
+          // keeping track of process ids of the child process
+          if(Pidnum>14) //if there is more than 15 child process to keep track of
+          {
+            int k;
+            for(k=0; k<15; k++)
+            {
+              SHpid[k]=SHpid[k+1];
 
-                    strcpy(cmd_str, hist[number-1]);
+            }
+                Pidnum--;
 
-                    rotate = 0;
-                    continue;
+          }
+          SHpid[Pidnum]=pid;
+          Pidnum++;
+          // wait for the child to exit;
+          waitpid(pid, &status, 0);
 
+        }
 
-                  }
+      }
 
-                  else if (strcmp(token[0], "showpids")==0)
-                  {
-
-                  }
-
-
-                  else
-                  {
-                    pid_t pid = fork();
-                    if (pid==0)
-                    {
-                      int ret= execvp(token[0], &token[0]);
-                      if(ret==-1)
-                      {
-
-                        printf("%s: Command not found\n", working_root);
-                      }
-
-                      fflush(NULL);
-                      exit(0);
-                    }
-                    else if (pid == -1)
-                    {
-                      perror("fork failed \n");
-
-                      exit(0);
-                    }
-                    else
-                    {
-                      int status;
-                      fflush(NULL);
-                      waitpid(pid, &status, 0);
-
-                    }
-
-
-
-                  }
-
-                counter=i;
-
-
-
-
+      counter=i;
+      //keep tracks of the number of command prompts entered by the user
       counter++;
       i++;
-          free(working_root);
+      //dynamically allocated memory is freed
+      free(working_root);
+
+
+
     }
+    return 0;
 
-
-  return 0;
 }
