@@ -48,6 +48,126 @@ void FIFOpageReplacement(int pagetable[], int num, int frame[], int size)
   printf("FICO:Page fault=%d\n",count);
 
 }
+void OptimalPageReplacement(int pagetable[], int num, int frame[], int size)
+{
+  int i=0,j=0,k=0;
+  int ref=0;
+  int fagefault=0,cnt=0, count=0;
+  int found;
+
+  for(i=0;i<num&& k<size;i++)
+  {
+    cnt=0;
+    for(j=0;j<size;j++)
+    {
+      if(pagetable[i]==frame[j])
+      {
+        cnt=1;
+        break;
+      }
+    }
+    if(cnt==0)
+    {
+        frame[k]=pagetable[i];
+        k++;
+        count++;
+
+
+
+    }
+    for(j=0;j<size;j++)
+    {
+      printf("%d\t",frame[j]);
+    }
+    printf("\n");
+  }
+  int trackno;
+  int y;
+  y=size+1;
+  int reference_array[y];
+  int refvar=0;
+  int f=0;
+  ref=size;
+  while(ref<num)
+  {
+    cnt=0;
+    for(f=0; f<size;f++)
+    {
+      if(pagetable[ref]==frame[f])
+      {
+        cnt=1;
+        printf("\n");
+
+      }
+    }
+    if(cnt==0)
+    {
+
+        for(j=0;j<size;j++)
+        {
+          found=0;
+          for(trackno=num-1;trackno>=ref;trackno--)
+          {
+              if(frame[j]==pagetable[trackno])
+              {
+                reference_array[refvar]= trackno;
+
+                found=1;
+              }
+              // if(found==0)
+              // {
+              //   frame[j]=pagetable[ref];
+              // }
+          }
+
+
+        if(found==1)
+        {
+          refvar++;
+        }
+        reference_array[refvar]=-1;
+        if(found==0)
+        {
+          frame[j]=pagetable[ref];
+          count++;
+        }
+        int suman=reference_array[0];
+        if(refvar>1)
+        {
+          for(i=1;i<refvar;i++)
+          {
+            if(reference_array[i]>suman)
+            {
+              suman=reference_array[i];
+            }
+          }
+          for(i=0;i<size;i++)
+          {
+            if(frame[i]==pagetable[suman])
+            {
+              frame[i]=pagetable[ref];
+              count++;
+            }
+          }
+        }
+
+
+        }
+
+
+    }
+//    printf("\n%d\n",pagetable[ref]);
+    for(j=0;j<size;j++)
+    {
+      printf("%d\t",frame[j]);
+    }
+    printf("%d");
+    ref++;
+
+  }
+  printf("OptimalPageReplacement: \n%d", count);
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -133,15 +253,26 @@ int main(int argc, char *argv[])
  int i;
 
  int frame[working_set_size];
- for(i=0;i<working_set_size;i++)
+ int z=0;
+ while(z<2)
  {
-   frame[i]=-1;
-   printf("%d\t\t", frame[i]);
- }
+    for(i=0;i<working_set_size;i++)
+      {
+        frame[i]=-1;
+    //    printf("%d\t\t", frame[i]);
+      }
 
- FIFOpageReplacement(pagetable,number_pages,frame,working_set_size);
 
-
+    if(z==0)
+    {
+        FIFOpageReplacement(pagetable,number_pages,frame,working_set_size);
+    }
+    if(z==1)
+    {
+      OptimalPageReplacement(pagetable,number_pages,frame,working_set_size);
+    }
+      z++;
+}
 
 
   return 0;
